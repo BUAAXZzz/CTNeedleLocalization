@@ -113,6 +113,9 @@ The output contains reconstructed 3D needle trajectories, matched tip–handle p
 
 ---
 
+## 🧠 Pretrained Weights
+- Download link: **https://pan.baidu.com/s/1AAaDUe890DdsZ_dx7lJCSw?pwd=wb3e**
+
 ## 📄 License
 
 This project is released under the **MIT License**.
