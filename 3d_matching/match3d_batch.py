@@ -2,54 +2,56 @@
 # Copyright (c) 2026 Zhuo Xiao
 # All rights reserved.
 #
+# Author: Zhuo Xiao
+#
 # This source code is licensed under the MIT License.
 # You may obtain a copy of the License at:
 #   https://opensource.org/licenses/MIT
 #
 # Description:
-#   This file implements the 3D needle matching and association logic
-#   (tip–handle matching, cross-slice merging, and greedy assignment),
-#   with all network forward/inference components removed.
+#   Implementation of the Greedy Matching and Merging (GMM) algorithm for
+#   3D needle reconstruction, as described in:
 #
-# Notes:
-#   - This code is intended for research and academic use.
-#   - If you use this code in published work, please cite the corresponding paper.
+#   "Multi-needle Localization for Pelvic Seed Implant Brachytherapy
+#    based on Tip-handle Detection and Matching"
+#
+#   This file implements the Unbalanced Assignment Problem with Constraints (UAP-C)
+#   using HU-based scoring, geometric constraints, and greedy optimization.
+#
+#   NOTE:
+#   - No neural network forward or inference is included.
+#   - This module operates purely on 2D detection results and CT volumes.
 # -----------------------------------------------------------------------------
 
-# match3d_batch.py
 import argparse
 import json
 import os
 import time
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import SimpleITK as sitk
 
 from match3d_utils import (
     read_mha_volume,
-    merge_detections_across_slices,
-    build_score_matrix,
-    greedy_match,
-    greedy_match_wo_nocross,
+    build_score_matrix,          # HU-based O(i,j)
+    greedy_match,                # GMM with No-Cross
+    greedy_match_wo_nocross,     # GMM without No-Cross (ablation)
+    merge_duplicate_paths        # HU-weighted centroid merge
 )
 
 
+# ---------------------------
+# Configuration
+# ---------------------------
+
 @dataclass
-class Match3DConfig:
-    # Input
+class GMMConfig:
     pred2d_name: str = "pred_2d.json"
-
-    # 3D merge config
-    enable_3d_merge: bool = True
-    merge_cross_slice_tol_mm: float = 6.0
-    merge_max_z_gap_slices: int = 2
-    merge_use_angle: bool = True
-    merge_angle_tol_deg: float = 5.0
-
-    # Matching config
     n_prior: int = 32
+
+    # Constraints
     disable_nocross: bool = False
     nocross_tol_mm: float = 2.0
 
@@ -57,191 +59,194 @@ class Match3DConfig:
     out_name: str = "pred_3d.json"
 
 
-def _safe_makedirs(p: str) -> None:
-    os.makedirs(p, exist_ok=True)
+# ---------------------------
+# I/O utilities
+# ---------------------------
 
-
-def _load_pred2d(pred2d_path: str) -> Dict[str, Any]:
-    with open(pred2d_path, "r", encoding="utf-8") as f:
+def load_pred2d(path: str) -> Dict:
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def _collect_tip_pin_from_pred2d(pred2d: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def split_tip_handle(pred2d: Dict) -> Tuple[List[Dict], List[Dict]]:
     """
-    Expect pred2d["slices"] list. Each slice has "dets".
-    Each det should include: x0,y0,z,angle,cls,score (x_mm/y_mm/z_mm optional).
-    By default:
+    Split detections into tip set T and handle set H.
+
+    Convention:
       cls == 1 -> tip
-      cls == 0 -> pin/handle
+      cls == 0 -> handle
     """
-    all_tip: List[Dict[str, Any]] = []
-    all_pin: List[Dict[str, Any]] = []
-
-    slices = pred2d.get("slices", [])
-    for s in slices:
-        dets = s.get("dets", [])
-        for d in dets:
-            cls = int(d.get("cls", -1))
-            if cls == 1:
-                all_tip.append(d)
-            elif cls == 0:
-                all_pin.append(d)
-
-    return all_tip, all_pin
+    T, H = [], []
+    for s in pred2d.get("slices", []):
+        for d in s.get("dets", []):
+            if int(d.get("cls", -1)) == 1:
+                T.append(d)
+            elif int(d.get("cls", -1)) == 0:
+                H.append(d)
+    return T, H
 
 
-def _run_match_one_case(case_dir: str, cfg: Match3DConfig, out_dir: Optional[str] = None) -> Dict[str, Any]:
+def to_xyz_angle(dets: List[Dict]) -> List[List[float]]:
     """
-    case_dir must contain:
-      - ct.mha
-      - pred_2d.json (or cfg.pred2d_name)
+    Convert raw dict detections to [x, y, z, angle]
     """
-    t0 = time.time()
+    out = []
+    for d in dets:
+        out.append([
+            float(d["x0"]),
+            float(d["y0"]),
+            float(d["z"]),
+            float(d.get("angle", 0.0))
+        ])
+    return out
+
+
+# ---------------------------
+# Core GMM pipeline
+# ---------------------------
+
+def run_gmm_one_case(
+    case_dir: str,
+    cfg: GMMConfig,
+    out_dir: str = None
+) -> Dict:
+
+    t_start = time.time()
 
     ct_path = os.path.join(case_dir, "ct.mha")
     pred2d_path = os.path.join(case_dir, cfg.pred2d_name)
-    if not os.path.exists(pred2d_path):
-        raise FileNotFoundError(f"pred2d not found: {pred2d_path}")
+
     if not os.path.exists(ct_path):
-        raise FileNotFoundError(f"ct.mha not found: {ct_path}")
+        raise FileNotFoundError(ct_path)
+    if not os.path.exists(pred2d_path):
+        raise FileNotFoundError(pred2d_path)
 
     if out_dir is None:
         out_dir = case_dir
-    _safe_makedirs(out_dir)
+    os.makedirs(out_dir, exist_ok=True)
 
-    ct_img, vol_zyx, spacing_xyz, origin_xyz, direction_3x3 = read_mha_volume(ct_path)
-    pred2d = _load_pred2d(pred2d_path)
-    all_tip_dets, all_pin_dets = _collect_tip_pin_from_pred2d(pred2d)
+    # Load CT volume
+    ct_img, vol_zyx, spacing_xyz, origin_xyz, direction = read_mha_volume(ct_path)
 
-    if cfg.enable_3d_merge:
-        tip_data, tip_merge_info = merge_detections_across_slices(
-            all_tip_dets,
-            cross_slice_tol_mm=cfg.merge_cross_slice_tol_mm,
-            max_z_gap_slices=cfg.merge_max_z_gap_slices,
-            use_angle=cfg.merge_use_angle,
-            angle_tol_deg=cfg.merge_angle_tol_deg,
-        )
-        pin_data, pin_merge_info = merge_detections_across_slices(
-            all_pin_dets,
-            cross_slice_tol_mm=cfg.merge_cross_slice_tol_mm,
-            max_z_gap_slices=cfg.merge_max_z_gap_slices,
-            use_angle=cfg.merge_use_angle,
-            angle_tol_deg=cfg.merge_angle_tol_deg,
-        )
-    else:
-        # Use raw 2D dets as 3D points: [x0, y0, z, angle]
-        tip_data = [[float(d["x0"]), float(d["y0"]), float(d["z"]), float(d.get("angle", 0.0))] for d in all_tip_dets]
-        pin_data = [[float(d["x0"]), float(d["y0"]), float(d["z"]), float(d.get("angle", 0.0))] for d in all_pin_dets]
-        tip_merge_info, pin_merge_info = [], []
+    # Load detections
+    pred2d = load_pred2d(pred2d_path)
+    T_raw, H_raw = split_tip_handle(pred2d)
 
-    # Build score matrix and match
-    score_mat = build_score_matrix(ct_img, tip_data, pin_data)
+    T = to_xyz_angle(T_raw)
+    H = to_xyz_angle(H_raw)
 
+    # ---------------------------
+    # Step 1: HU-based scoring
+    # ---------------------------
+    # O(i,j) = μ(i,j) / σ(i,j)
+    score_matrix = build_score_matrix(ct_img, T, H)
+
+    # ---------------------------
+    # Step 2: Greedy matching (UAP-C)
+    # ---------------------------
     if cfg.disable_nocross:
-        pairs = greedy_match_wo_nocross(score_mat, tip_data, pin_data, n_prior=cfg.n_prior)
+        pairs = greedy_match_wo_nocross(
+            score_matrix, T, H, n_prior=cfg.n_prior
+        )
     else:
         pairs = greedy_match(
-            score_mat,
-            tip_data,
-            pin_data,
+            score_matrix,
+            T,
+            H,
             ct_img,
             n_prior=cfg.n_prior,
-            enable_nocross=True,
-            nocross_tol_mm=cfg.nocross_tol_mm,
+            nocross_tol_mm=cfg.nocross_tol_mm
         )
 
-    # Serialize results
+    # ---------------------------
+    # Step 3: Duplicate path merging (only if |pairs| > N_prior)
+    # ---------------------------
+    if len(pairs) > cfg.n_prior:
+        pairs = merge_duplicate_paths(
+            pairs,
+            ct_img,
+            target_n=cfg.n_prior
+        )
+
+    # ---------------------------
+    # Serialize output
+    # ---------------------------
     out = {
         "case_dir": case_dir,
         "ct_path": ct_path,
         "pred2d_path": pred2d_path,
         "spacing_xyz": list(map(float, spacing_xyz.tolist())),
-        "shape_zyx": [int(vol_zyx.shape[0]), int(vol_zyx.shape[1]), int(vol_zyx.shape[2])],
         "config": asdict(cfg),
         "counts": {
-            "tip_raw": int(len(all_tip_dets)),
-            "pin_raw": int(len(all_pin_dets)),
-            "tip_merged": int(len(tip_data)),
-            "pin_merged": int(len(pin_data)),
-            "pairs": int(len(pairs)),
+            "tip_raw": len(T_raw),
+            "handle_raw": len(H_raw),
+            "pairs_final": len(pairs),
         },
-        "tip_merge_info": tip_merge_info,
-        "pin_merge_info": pin_merge_info,
         "pairs": [],
-        "elapsed_sec": float(time.time() - t0),
+        "elapsed_sec": time.time() - t_start
     }
 
-    # Keep only necessary fields (Tip/Pin are numpy arrays)
     for p in pairs:
-        tip = np.asarray(p["Tip"], dtype=float).reshape(-1).tolist()
-        pin = np.asarray(p["Pin"], dtype=float).reshape(-1).tolist()
         out["pairs"].append({
-            "Tip": tip,          # [x,y,z,angle]
-            "Pin": pin,          # [x,y,z,angle]
-            "score": float(p.get("score", 0.0)),
-            "tip_idx": int(p.get("tip_idx", -1)),
-            "pin_idx": int(p.get("pin_idx", -1)),
+            "Tip": list(map(float, p["Tip"])),
+            "Handle": list(map(float, p["Pin"])),
+            "score": float(p["score"]),
+            "tip_idx": int(p["tip_idx"]),
+            "handle_idx": int(p["pin_idx"])
         })
 
     out_path = os.path.join(out_dir, cfg.out_name)
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(out, f, ensure_ascii=False, indent=2)
+        json.dump(out, f, indent=2)
 
     return out
 
 
+# ---------------------------
+# Batch interface
+# ---------------------------
+
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--root", required=True, help="Root dir containing multiple case subfolders.")
-    ap.add_argument("--out_root", default="", help="If set, write each case output to out_root/<case>/pred_3d.json")
-    ap.add_argument("--pred2d_name", default="pred_2d.json", help="2D prediction json filename under each case dir.")
+    ap = argparse.ArgumentParser("GMM-based 3D Needle Matching")
+    ap.add_argument("--root", required=True, help="Root directory of cases")
+    ap.add_argument("--out_root", default="", help="Optional output root")
+    ap.add_argument("--pred2d_name", default="pred_2d.json")
     ap.add_argument("--n_prior", type=int, default=32)
-    ap.add_argument("--enable_3d_merge", action="store_true")
-    ap.add_argument("--disable_3d_merge", action="store_true")
     ap.add_argument("--disable_nocross", action="store_true")
     ap.add_argument("--nocross_tol_mm", type=float, default=2.0)
-
-    ap.add_argument("--merge_cross_slice_tol_mm", type=float, default=6.0)
-    ap.add_argument("--merge_max_z_gap_slices", type=int, default=2)
-    ap.add_argument("--merge_use_angle", action="store_true")
-    ap.add_argument("--merge_angle_tol_deg", type=float, default=5.0)
-
     ap.add_argument("--out_name", default="pred_3d.json")
     args = ap.parse_args()
 
-    cfg = Match3DConfig(
+    cfg = GMMConfig(
         pred2d_name=args.pred2d_name,
-        enable_3d_merge=(args.enable_3d_merge and (not args.disable_3d_merge)),
-        merge_cross_slice_tol_mm=args.merge_cross_slice_tol_mm,
-        merge_max_z_gap_slices=args.merge_max_z_gap_slices,
-        merge_use_angle=args.merge_use_angle,
-        merge_angle_tol_deg=args.merge_angle_tol_deg,
         n_prior=args.n_prior,
         disable_nocross=args.disable_nocross,
         nocross_tol_mm=args.nocross_tol_mm,
-        out_name=args.out_name,
+        out_name=args.out_name
     )
 
-    root = args.root
-    case_names = sorted([d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))])
+    cases = sorted([
+        d for d in os.listdir(args.root)
+        if os.path.isdir(os.path.join(args.root, d))
+    ])
 
-    ok, bad = 0, 0
-    for case in case_names:
-        case_dir = os.path.join(root, case)
+    ok, err = 0, 0
+    for c in cases:
+        case_dir = os.path.join(args.root, c)
         out_dir = None
         if args.out_root:
-            out_dir = os.path.join(args.out_root, case)
-            os.makedirs(out_dir, exist_ok=True)
+            out_dir = os.path.join(args.out_root, c)
 
         try:
-            res = _run_match_one_case(case_dir, cfg, out_dir=out_dir)
+            res = run_gmm_one_case(case_dir, cfg, out_dir)
             ok += 1
-            print(f"[OK] {case}: pairs={res['counts']['pairs']}  time={res['elapsed_sec']:.3f}s")
+            print(f"[OK] {c}: pairs={res['counts']['pairs_final']}  "
+                  f"time={res['elapsed_sec']:.3f}s")
         except Exception as e:
-            bad += 1
-            print(f"[ERR] {case}: {repr(e)}")
+            err += 1
+            print(f"[ERR] {c}: {repr(e)}")
 
-    print(f"Done. OK={ok}, ERR={bad}")
+    print(f"Finished. OK={ok}, ERR={err}")
 
 
 if __name__ == "__main__":
