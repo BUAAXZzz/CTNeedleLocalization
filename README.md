@@ -37,6 +37,17 @@ The framework consists of two stages:
 
 ---
 
+## 🔄 Workflow
+
+The overall workflow of the proposed method is illustrated below.
+
+![Workflow of CTNeedleLocalization](Workflow.png)
+
+The pipeline starts from intraoperative CT acquisition, followed by slice-wise 2D detection of needle tips and handles, and finally reconstructs complete 3D needle trajectories through greedy matching and merging.
+
+---
+
+
 ## 1️⃣ 2D Detection
 
 ### Reference and Acknowledgement
