@@ -1,5 +1,9 @@
 # CTNeedleLocalization
 
+[![DOI](https://img.shields.io/badge/DOI-10.1109%2FJBHI.2026.3694701-blue)](https://doi.org/10.1109/JBHI.2026.3694701)
+
+🎉 **News:** This work has been officially accepted by the **IEEE Journal of Biomedical and Health Informatics (JBHI)**!
+
 Official Code of  
 **“Multi-needle Localization for Pelvic Seed Implant Brachytherapy based on Tip-handle Detection and Matching”**
 
@@ -7,17 +11,19 @@ Official Code of
 
 ## 📝 Citation
 
-If you find this work or code useful for your research, please cite our paper:
+If you find this work or code useful for your research, please cite our IEEE JBHI paper:
 
 ```bibtex
-@misc{xiao2025multineedlelocalizationpelvicseed,
-      title={Multi-needle Localization for Pelvic Seed Implant Brachytherapy based on Tip-handle Detection and Matching}, 
-      author={Zhuo Xiao and Fugen Zhou and Jingjing Wang and Chongyu He and Bo Liu and Haitao Sun and Zhe Ji and Yuliang Jiang and Junjie Wang and Qiuwen Wu},
-      year={2025},
-      eprint={2509.17931},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2509.17931}
+@ARTICLE{11523703,
+  author={Xiao, Zhuo and Zhou, Fugen and Wang, Jingjing and He, Chongyu and Liu, Bo and Sun, Haitao and Ji, Zhe and Jiang, Yuliang and Wang, Junjie and Wu, Qiuwen},
+  journal={IEEE Journal of Biomedical and Health Informatics}, 
+  title={Multi-needle Localization for Pelvic Seed Implant Brachytherapy based on Tip-handle Detection and Matching}, 
+  year={2026},
+  volume={},
+  number={},
+  pages={1-14},
+  keywords={Needles;Signal detection;Location awareness;Brachytherapy;Seeds (agriculture);Modeling;Merging;Head;Implants;Trajectory;Multi-needle localization;object detection;CT images;unbalanced assignment problem with constraints;brachytherapy},
+  doi={10.1109/JBHI.2026.3694701}
 }
 ```
 
@@ -47,7 +53,6 @@ The pipeline starts from intraoperative CT acquisition, followed by slice-wise 2
 
 ---
 
-
 ## 1️⃣ 2D Detection
 
 ### Reference and Acknowledgement
@@ -59,6 +64,9 @@ The 2D detection module in this project is implemented with reference to the fol
 
 - **CenterNet**  
   https://github.com/xingyizhou/CenterNet
+
+- **HRNet**  
+  https://github.com/HRNet/HRNet-Semantic-Segmentation
 
 We sincerely thank the authors for making their work publicly available.
 
@@ -85,7 +93,7 @@ Relevant files:
 
 `match3d_batch.py` operates on a case-level directory structure:
 
-```
+```text
 case_xxx/
 ├── ct.mha              # Original CT volume
 └── pred_2d.json        # 2D detection results
@@ -105,7 +113,7 @@ python match3d_batch.py   --root /path/to/cases_root   --n_prior <number_of_need
 
 For each case, the module generates:
 
-```
+```text
 pred_3d.json
 ```
 
@@ -114,7 +122,10 @@ The output contains reconstructed 3D needle trajectories, matched tip–handle p
 ---
 
 ## 🧠 Pretrained Weights
-- Download link: **https://pan.baidu.com/s/1AAaDUe890DdsZ_dx7lJCSw?pwd=wb3e**
+
+- Download link: **[Baidu Netdisk](https://pan.baidu.com/s/1AAaDUe890DdsZ_dx7lJCSw?pwd=wb3e)** (Password: `wb3e`)
+
+---
 
 ## 📄 License
 
