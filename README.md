@@ -4,14 +4,13 @@
 
 🎉 **News:** This work has been officially accepted by the **IEEE Journal of Biomedical and Health Informatics (JBHI)**!
 
-Official Code of  
-**“Multi-needle Localization for Pelvic Seed Implant Brachytherapy based on Tip-handle Detection and Matching”**
+Official Code of  **“Multi-needle Localization for Pelvic Seed Implant Brachytherapy based on Tip-handle Detection and Matching”**
 
 ---
 
 ## 📝 Citation
 
-If you find this work or code useful for your research, please cite our IEEE JBHI paper:
+If you find this work or code useful for your research, please cite our paper:
 
 ```bibtex
 @ARTICLE{11523703,
