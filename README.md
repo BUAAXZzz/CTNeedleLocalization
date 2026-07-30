@@ -2,6 +2,16 @@
 
 [![DOI](https://img.shields.io/badge/DOI-10.1109%2FJBHI.2026.3694701-blue)](https://doi.org/10.1109/JBHI.2026.3694701)
 
+## 🎬 Demo
+
+https://github.com/user-attachments/assets/ca84774f-ba94-48ad-9b75-8b2e26e57bd3
+
+<p align="center">
+ Needle Detection Demo in TPS
+</p>
+
+---
+
 🎉 **News:** This work has been officially accepted by the **IEEE Journal of Biomedical and Health Informatics (JBHI)**!
 
 Official Code of  **“Multi-needle Localization for Pelvic Seed Implant Brachytherapy based on Tip-handle Detection and Matching”**
