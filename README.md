@@ -5,11 +5,6 @@
 ## 🎬 Demo
 
 https://github.com/user-attachments/assets/ca84774f-ba94-48ad-9b75-8b2e26e57bd3
-
-<p align="center">
- Needle Detection Demo in TPS
-</p>
-
 ---
 
 🎉 **News:** This work has been officially accepted by the **IEEE Journal of Biomedical and Health Informatics (JBHI)**!
