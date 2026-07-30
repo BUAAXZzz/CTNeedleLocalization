@@ -4,7 +4,10 @@
 
 ## 🎬 Demo
 
-https://github.com/user-attachments/assets/ca84774f-ba94-48ad-9b75-8b2e26e57bd3
+
+https://github.com/user-attachments/assets/e3a5576a-9b4e-4349-b865-b3c84b615dd9
+
+
 ---
 
 🎉 **News:** This work has been officially accepted by the **IEEE Journal of Biomedical and Health Informatics (JBHI)**!
