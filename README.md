@@ -2,11 +2,11 @@
 
 [![DOI](https://img.shields.io/badge/DOI-10.1109%2FJBHI.2026.3694701-blue)](https://doi.org/10.1109/JBHI.2026.3694701)
 
-## 🎬 Demo
+## 🎬 TPS Demo
 
-
-https://github.com/user-attachments/assets/e3a5576a-9b4e-4349-b865-b3c84b615dd9
-
+<p align="center">
+<img src="Needle_Detection_compressed.gif" width="800">
+</p>
 
 ---
 
