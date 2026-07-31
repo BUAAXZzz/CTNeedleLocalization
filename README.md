@@ -4,9 +4,9 @@
 
 ## 🎬 TPS Demo
 
-<p align="center">
-<img src="Needle_Detection_compressed.gif" width="800">
-</p>
+
+https://github.com/user-attachments/assets/68396c2a-b2ca-4534-992c-4828db23886a
+
 
 ---
 
