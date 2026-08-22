@@ -29,7 +29,7 @@ If you find this work or code useful for your research, please cite our paper:
   volume={},
   number={},
   pages={1-14},
-  keywords={Needles;Signal detection;Location awareness;Brachytherapy;Seeds (agriculture);Modeling;Merging;Head;Implants;Trajectory;Multi-needle localization;object detection;CT images;unbalanced assignment problem with constraints;brachytherapy},
+  keywords={Multi-needle localization;object detection;CT images;unbalanced assignment problem with constraints;brachytherapy},
   doi={10.1109/JBHI.2026.3694701}
 }
 ```
