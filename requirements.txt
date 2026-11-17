@@ -1,0 +1,15 @@
+# Python 3.9; install the appropriate CUDA build of PyTorch for your machine.
+torch==1.11.0
+numpy==1.26.4
+numba==0.60.0
+llvmlite==0.43.0
+scipy
+opencv-python
+Pillow
+matplotlib
+pycocotools
+bbox==0.9.2
+progress==1.5
+yacs
+SimpleITK
+# Optional TensorBoard logging: tensorboardX

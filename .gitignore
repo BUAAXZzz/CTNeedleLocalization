@@ -1,0 +1,34 @@
+# Local configuration
+.vscode/
+.idea/
+.agents/
+.codex/
+.aws/
+.DS_Store
+
+# Python and compiled extensions
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Generated datasets, patient metadata and model outputs
+/2d_detection/data/
+/data/
+/data_nii/
+/exp/
+/weights/
+*.nii
+*.nii.gz
+*.mha
+*.mhd
+*.pth
+*.pt
+*.ckpt
+*.log
+
+# Local copy of the paper
+/JBHI.pdf
