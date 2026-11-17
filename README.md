@@ -102,6 +102,10 @@ python 2d_detection/main.py --task keyptdet --dataset needleseg --arch hrnet \
 
 Prepared data is saved to `2d_detection/data/needleseg/`, and checkpoints are saved to `exp/keyptdet/hrnet_needleseg_ct/`.
 
+The annotation preview below shows needle tip and handle locations and directions on CT slices.
+
+![Annotation preview](annotation_preview.jpg)
+
 For validation and per-case 2D export:
 
 ```bash
