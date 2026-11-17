@@ -171,7 +171,8 @@ Open the generated `index.html` to browse results.
 
 ## 🧠 Pretrained Weights
 
-- Download link: **[Baidu Netdisk](https://pan.baidu.com/s/1AAaDUe890DdsZ_dx7lJCSw?pwd=wb3e)** (Password: `wb3e`)
+- **[Google Drive](https://drive.google.com/file/d/1IkT_T7kEKCrGw80zcyGGHKTzB8FSiKAk/view?usp=sharing)**
+- **[Baidu Netdisk](https://pan.baidu.com/s/1OZ2flMYOSO_9U9-133r0sA?pwd=ua8n)** (Password: `ua8n`)
 
 ---
 
