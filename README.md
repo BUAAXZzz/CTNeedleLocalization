@@ -178,4 +178,5 @@ Open the generated `index.html` to browse results.
 
 ## 📄 License
 
-This project is released under the **MIT License**.
+- **Code:** Released under the **MIT License**.
+- **Model weights:** Provided exclusively for **non-commercial academic research**. **Commercial use is prohibited**.
