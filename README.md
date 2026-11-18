@@ -56,7 +56,7 @@ The overall workflow of the proposed method is illustrated below.
 
 ![Workflow of CTNeedleLocalization](Workflow.png)
 
-The pipeline starts from intraoperative CT acquisition, followed by slice-wise 2D detection of needle tips and handles, and finally reconstructs complete 3D needle trajectories through greedy matching and merging.
+The pipeline begins with intraoperative CT acquisition, followed by slice-wise 2D detection of needle tips and handles. Complete 3D needle trajectories are then reconstructed through greedy matching and merging. To simplify environment setup, standard convolutions are used instead of deformable convolutions in this implementation.
 
 ---
 
